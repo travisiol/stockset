@@ -1,0 +1,637 @@
+@import "tailwindcss";
+
+/*
+ * STOCKSET — any tokenized stock, one token.
+ *
+ * The art direction is glass in a dark room. A single lit object floats in
+ * near-black, and everything else is a pane held in front of it: hairline
+ * white borders at 9%, a wash of blur, one specular line along the top edge
+ * where the light catches. Colour never comes from a fill — it comes from
+ * the light behind the glass, which is why the accents live in blurred
+ * aurora shapes and refractions rather than in the surfaces themselves.
+ *
+ * Type is Inter for everything spoken and IBM Plex Mono for everything
+ * counted. Display sizes run at weight 600 with tracking pulled to -0.035em:
+ * at 80px, default tracking makes a headline look like a paragraph that got
+ * enlarged.
+ *
+ * Radii are large and consistent — 999px on controls, 24px on panes, 14px on
+ * the chips inside them. A glass system with mixed corner logic reads as
+ * broken glass.
+ */
+
+:root {
+  /* Room */
+  --ink: #06070c;
+  --ink-raised: #0a0c14;
+  --ink-sunk: #04050a;
+
+  /* Panes */
+  --pane: rgba(255, 255, 255, 0.045);
+  --pane-strong: rgba(255, 255, 255, 0.07);
+  --line: rgba(255, 255, 255, 0.09);
+  --line-strong: rgba(255, 255, 255, 0.16);
+
+  /* Ink on glass */
+  --text: #eef0f7;
+  --text-soft: #a8aec2;
+  --text-mute: #6b7189;
+
+  /* Light sources. The only saturated values in the system, and they are
+     used as light rather than as paint. */
+  --blue: #5b8cff;
+  --blue-bright: #8fb0ff;
+  --violet: #9b7bff;
+  --mint: #55e6c1;
+  --pink: #ff9ec4;
+  --amber: #ffc46b;
+
+  --gain: #4ade80;
+  --loss: #ff6b6b;
+}
+
+@theme inline {
+  --color-ink: var(--ink);
+  --color-ink-raised: var(--ink-raised);
+  --color-ink-sunk: var(--ink-sunk);
+  --color-pane: var(--pane);
+  --color-pane-strong: var(--pane-strong);
+  --color-line: var(--line);
+  --color-line-strong: var(--line-strong);
+  --color-text: var(--text);
+  --color-soft: var(--text-soft);
+  --color-mute: var(--text-mute);
+  --color-blue: var(--blue);
+  --color-blue-bright: var(--blue-bright);
+  --color-violet: var(--violet);
+  --color-mint: var(--mint);
+  --color-pink: var(--pink);
+  --color-amber: var(--amber);
+  --color-gain: var(--gain);
+  --color-loss: var(--loss);
+
+  --font-sans:
+    "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-mono:
+    "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+}
+
+/*
+ * Everything below sits in the components layer on purpose.
+ *
+ * Tailwind v4 puts its utilities in `@layer utilities`, and an unlayered
+ * rule outranks any layered one no matter how weak its selector — so with
+ * these rules unlayered, `.chip` beat `bg-blue/15` and `.btn`'s 46px height
+ * beat `h-10`. Every per-instance override on the site silently did nothing.
+ * Inside `components`, utilities win again, which is the whole point of
+ * having both.
+ */
+@layer components {
+  * {
+    border-color: var(--line);
+  }
+
+html {
+  scroll-behavior: smooth;
+  background: var(--ink);
+  /* The nav is sticky at 64px; anchored sections have to clear it. */
+  scroll-padding-top: 96px;
+}
+
+body {
+  /*
+   * Transparent on purpose. The aurora is a fixed z-index:-1 layer, and
+   * negative-z descendants paint before an in-flow body background — so an
+   * opaque body hides the room light entirely. The ink ground is set on
+   * <html> instead, where it propagates to the canvas.
+   */
+  background: transparent;
+  color: var(--text);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+::selection {
+  background: color-mix(in srgb, var(--blue) 45%, transparent);
+  color: #fff;
+}
+
+:focus-visible {
+  outline: 2px solid var(--blue-bright);
+  outline-offset: 3px;
+  border-radius: 4px;
+}
+
+/* ---- Type ------------------------------------------------------------- */
+
+/*
+ * Ceiling is 66px rather than the 84 this wants to be: the hero line is
+ * "Any tokenized stock." over "One token.", and above 66px the first line
+ * breaks in its column and strands the word "stock." on a line of its own.
+ */
+.type-display {
+  font-weight: 600;
+  font-size: clamp(38px, 5.4vw, 66px);
+  line-height: 1;
+  letter-spacing: -0.035em;
+}
+
+.type-section {
+  font-weight: 600;
+  font-size: clamp(28px, 3.6vw, 44px);
+  line-height: 1.04;
+  letter-spacing: -0.03em;
+}
+
+.type-lead {
+  font-size: clamp(16px, 1.55vw, 20px);
+  line-height: 1.55;
+  color: var(--text-soft);
+  letter-spacing: -0.011em;
+}
+
+/* Small caps set in mono: labels, tickers, table heads, badges. */
+.type-label {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--text-mute);
+}
+
+.type-num {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.02em;
+}
+
+/* ---- Glass ------------------------------------------------------------ */
+
+/*
+ * One pane recipe, used everywhere. The ::before is the specular edge: a
+ * one-pixel white line that fades out by 42% down the pane. Without it the
+ * cards read as flat dark rectangles instead of glass with a lit rim.
+ */
+.glass {
+  position: relative;
+  background: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.055) 0%,
+    rgba(255, 255, 255, 0.018) 46%,
+    rgba(255, 255, 255, 0.028) 100%
+  );
+  border: 1px solid var(--line);
+  border-radius: 24px;
+  /*
+   * No backdrop-filter here on purpose — see .glass-blur below.
+   */
+  box-shadow:
+    0 1px 0 0 rgba(255, 255, 255, 0.06) inset,
+    0 24px 60px -30px rgba(0, 0, 0, 0.9);
+}
+
+.glass::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  padding: 1px;
+  background: linear-gradient(
+    160deg,
+    rgba(255, 255, 255, 0.34),
+    rgba(255, 255, 255, 0) 42%
+  );
+  -webkit-mask:
+    linear-gradient(#000 0 0) content-box,
+    linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask:
+    linear-gradient(#000 0 0) content-box,
+    linear-gradient(#000 0 0);
+  mask-composite: exclude;
+  pointer-events: none;
+}
+
+/*
+ * Real backdrop blur, for panes with something moving behind them.
+ *
+ * Only the sticky nav qualifies: the page scrolls under it, so there the
+ * blur is the entire effect. Behind the cards there is nothing but the fixed
+ * aurora, which is already a 90px blur — blurring it again costs a
+ * full-viewport readback per card and changes almost nothing on screen. What
+ * makes those panes read as glass is the translucent gradient and the lit
+ * rim above, not the blur.
+ *
+ * Unprefixed only: writing the -webkit- alias underneath makes Lightning CSS
+ * treat the standard property as redundant and emit the alias alone, which
+ * Chrome then ignores. The build adds whatever prefixes the targets need.
+ */
+.glass-blur {
+  backdrop-filter: blur(24px) saturate(130%);
+}
+
+.glass-hover {
+  transition:
+    transform 0.35s cubic-bezier(0.2, 0.7, 0.3, 1),
+    border-color 0.35s ease,
+    box-shadow 0.35s ease;
+}
+
+.glass-hover:hover {
+  transform: translateY(-3px);
+  border-color: var(--line-strong);
+  box-shadow:
+    0 1px 0 0 rgba(255, 255, 255, 0.1) inset,
+    0 34px 70px -34px rgba(0, 0, 0, 0.95);
+}
+
+/* Small inset chip — tickers, tags, counters. */
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 10px;
+  border-radius: 14px;
+  border: 1px solid var(--line);
+  background: rgba(255, 255, 255, 0.035);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  letter-spacing: 0.02em;
+  color: var(--text-soft);
+}
+
+/* ---- Controls --------------------------------------------------------- */
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  height: 46px;
+  padding: 0 22px;
+  border-radius: 999px;
+  font-size: 14.5px;
+  font-weight: 550;
+  letter-spacing: -0.012em;
+  white-space: nowrap;
+  transition:
+    transform 0.18s ease,
+    filter 0.18s ease,
+    background 0.18s ease,
+    border-color 0.18s ease;
+}
+
+.btn:active:not(:disabled) {
+  transform: translateY(1px);
+}
+
+.btn:disabled {
+  cursor: not-allowed;
+}
+
+/*
+ * The one filled control on the page. It is a light source like everything
+ * else here: a vertical gradient with a white sheen on its top edge and a
+ * blue bloom underneath, so it reads as lit rather than painted.
+ */
+.btn-primary {
+  color: #fff;
+  background: linear-gradient(180deg, #6f97ff 0%, #3f63e8 100%);
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  box-shadow:
+    0 1px 0 0 rgba(255, 255, 255, 0.45) inset,
+    0 10px 30px -10px rgba(70, 110, 255, 0.75);
+}
+
+.btn-primary:hover:not(:disabled) {
+  filter: brightness(1.08);
+}
+
+.btn-primary:disabled {
+  color: var(--text-mute);
+  background: rgba(255, 255, 255, 0.04);
+  border-color: var(--line);
+  box-shadow: none;
+}
+
+.btn-ghost {
+  color: var(--text);
+  background: rgba(255, 255, 255, 0.045);
+  border: 1px solid var(--line);
+
+}
+
+.btn-ghost:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.085);
+  border-color: var(--line-strong);
+}
+
+.btn-ghost:disabled {
+  color: var(--text-mute);
+}
+
+/* ---- Room light ------------------------------------------------------- */
+
+/*
+ * The aurora: four blurred ellipses fixed behind the document, one per
+ * accent hue, at low opacity. Every colour on the page comes from here. The
+ * surfaces stay neutral so the hues read as light through glass rather than
+ * as brand fills.
+ */
+.aurora {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.aurora span {
+  position: absolute;
+  display: block;
+  border-radius: 999px;
+  filter: blur(90px);
+}
+
+.aurora-a {
+  top: -18vh;
+  left: 6vw;
+  width: 46vw;
+  height: 46vw;
+  background: radial-gradient(circle, var(--blue) 0%, transparent 68%);
+  opacity: 0.5;
+}
+
+.aurora-b {
+  top: -14vh;
+  right: -8vw;
+  width: 44vw;
+  height: 44vw;
+  background: radial-gradient(circle, var(--violet) 0%, transparent 68%);
+  opacity: 0.42;
+}
+
+.aurora-c {
+  top: 44vh;
+  left: -12vw;
+  width: 40vw;
+  height: 40vw;
+  background: radial-gradient(circle, var(--mint) 0%, transparent 70%);
+  opacity: 0.16;
+}
+
+.aurora-d {
+  top: 28vh;
+  right: 2vw;
+  width: 32vw;
+  height: 32vw;
+  background: radial-gradient(circle, var(--pink) 0%, transparent 70%);
+  opacity: 0.18;
+}
+
+/* A hairline horizon under the hero, so the aurora has something to end on. */
+.horizon {
+  height: 1px;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    var(--line-strong) 22%,
+    var(--line-strong) 78%,
+    transparent
+  );
+}
+
+/* ---- The orb ---------------------------------------------------------- */
+
+/*
+ * A blown-glass sphere holding the mark. Five stacked layers, all CSS: the
+ * body, an iridescent conic film, the specular cap, the rim light, and the
+ * bloom it throws on the room. No image, so it stays crisp at any size and
+ * costs nothing to ship.
+ */
+.orb {
+  position: relative;
+  aspect-ratio: 1;
+  border-radius: 999px;
+  isolation: isolate;
+  animation: orb-float 11s ease-in-out infinite;
+}
+
+.orb-body {
+  position: absolute;
+  inset: 0;
+  border-radius: 999px;
+  background:
+    radial-gradient(
+      circle at 32% 26%,
+      rgba(255, 255, 255, 0.95) 0%,
+      rgba(190, 214, 255, 0.55) 12%,
+      rgba(90, 130, 245, 0.42) 34%,
+      rgba(24, 32, 74, 0.7) 62%,
+      rgba(8, 10, 26, 0.92) 100%
+    ),
+    radial-gradient(
+      circle at 70% 78%,
+      rgba(155, 123, 255, 0.55) 0%,
+      transparent 52%
+    );
+  box-shadow:
+    0 0 0 1px rgba(255, 255, 255, 0.14) inset,
+    0 -30px 60px -30px rgba(140, 180, 255, 0.8) inset;
+}
+
+/*
+ * The iridescence: a conic sweep through the four accents, blurred hard and
+ * screened in, so it behaves like a film on the surface rather than a
+ * sticker sitting on top of it.
+ */
+.orb-film {
+  position: absolute;
+  inset: 0;
+  border-radius: 999px;
+  background: conic-gradient(
+    from 210deg,
+    var(--mint),
+    var(--blue),
+    var(--violet),
+    var(--pink),
+    var(--amber),
+    var(--mint)
+  );
+  filter: blur(26px);
+  opacity: 0.42;
+  mix-blend-mode: screen;
+  animation: orb-spin 26s linear infinite;
+}
+
+/* Specular cap: the window, reflected in the top left of the glass. */
+.orb-cap {
+  position: absolute;
+  top: 8%;
+  left: 14%;
+  width: 42%;
+  height: 30%;
+  border-radius: 999px;
+  background: radial-gradient(
+    ellipse at 40% 35%,
+    rgba(255, 255, 255, 0.95) 0%,
+    rgba(255, 255, 255, 0.28) 40%,
+    transparent 72%
+  );
+  filter: blur(6px);
+}
+
+/* Rim light along the lower right, where the room wraps around the sphere. */
+.orb-rim {
+  position: absolute;
+  inset: 0;
+  border-radius: 999px;
+  background: linear-gradient(
+    310deg,
+    rgba(255, 255, 255, 0.55) 0%,
+    transparent 26%
+  );
+  mask: radial-gradient(circle, transparent 63%, #000 76%);
+  -webkit-mask: radial-gradient(circle, transparent 63%, #000 76%);
+  opacity: 0.7;
+}
+
+.orb-bloom {
+  position: absolute;
+  inset: -22%;
+  z-index: -1;
+  border-radius: 999px;
+  background: radial-gradient(
+    circle,
+    rgba(97, 138, 255, 0.5) 0%,
+    rgba(155, 123, 255, 0.22) 38%,
+    transparent 68%
+  );
+  filter: blur(38px);
+}
+
+/* The mark suspended inside the glass, refracted rather than printed on it. */
+.orb-mark {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  color: rgba(255, 255, 255, 0.92);
+  filter: drop-shadow(0 2px 12px rgba(20, 30, 80, 0.7));
+}
+
+@keyframes orb-float {
+  0%,
+  100% {
+    transform: translateY(-1.4%) scale(1);
+  }
+  50% {
+    transform: translateY(1.4%) scale(1.012);
+  }
+}
+
+@keyframes orb-spin {
+  to {
+    transform: rotate(1turn);
+  }
+}
+
+/* ---- Bokeh ------------------------------------------------------------ */
+
+/*
+ * The motes drifting around the orb. Their positions are a fixed table in
+ * `Bokeh.tsx` rather than Math.random, because a random field would differ
+ * between the server render and the client one and hydration would tear.
+ */
+.mote {
+  position: absolute;
+  border-radius: 999px;
+  filter: blur(1px);
+  animation: mote-drift 14s ease-in-out infinite;
+}
+
+@keyframes mote-drift {
+  0%,
+  100% {
+    transform: translate3d(0, 0, 0);
+    opacity: 0.5;
+  }
+  50% {
+    transform: translate3d(6px, -18px, 0);
+    opacity: 0.95;
+  }
+}
+
+/* ---- Marquee ---------------------------------------------------------- */
+
+.marquee {
+  overflow: hidden;
+  mask: linear-gradient(90deg, transparent, #000 12%, #000 88%, transparent);
+  -webkit-mask: linear-gradient(
+    90deg,
+    transparent,
+    #000 12%,
+    #000 88%,
+    transparent
+  );
+}
+
+.marquee-track {
+  display: flex;
+  width: max-content;
+  animation: marquee 46s linear infinite;
+}
+
+@keyframes marquee {
+  to {
+    transform: translateX(-50%);
+  }
+}
+
+/* ---- Reveal ----------------------------------------------------------- */
+
+/*
+ * Sections rise a few pixels as they enter. Driven by a view timeline where
+ * the browser has one, so there is no observer and no JS on the critical
+ * path; browsers without it simply get the finished state.
+ */
+@supports (animation-timeline: view()) {
+  @media (prefers-reduced-motion: no-preference) {
+    .reveal {
+      animation: reveal-in linear both;
+      animation-timeline: view();
+      animation-range: entry 5% cover 26%;
+    }
+  }
+}
+
+@keyframes reveal-in {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* ---- Motion ----------------------------------------------------------- */
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+
+  .orb,
+  .orb-film,
+  .mote,
+  .marquee-track {
+    animation: none !important;
+  }
+}
+
+/* end @layer components */
+}
